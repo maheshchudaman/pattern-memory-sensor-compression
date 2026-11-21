@@ -1,0 +1,82 @@
+[
+  {
+    "dataset": "UCI_HAR",
+    "gate": {
+      "accuracy": 0.6487953851374278,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tp": 0,
+      "tn": 1912,
+      "fp": 0,
+      "fn": 1035,
+      "threshold": 1.01,
+      "prototype_enabled": false,
+      "oracle_prototype_rate": 0.3512046148625721,
+      "learned_prototype_rate": 0.0,
+      "learned_compression_ratio": 3.4381590810292266,
+      "oracle_compression_ratio": 3.4383401506260896,
+      "direct_compression_ratio": 3.4383401506260896,
+      "byte_regret_percent": 0.005266469427267495
+    },
+    "downstream": {
+      "status": "evaluated_subject_independent_official_split",
+      "original": {
+        "accuracy": 0.8853070919579233,
+        "macro_f1": 0.8869824160991583,
+        "changed_decisions": 338
+      },
+      "reconstructed": {
+        "accuracy": 0.8897183576518494,
+        "macro_f1": 0.8914332341527659,
+        "changed_decisions": 325
+      },
+      "accuracy_change": 0.004411265693926025,
+      "macro_f1_change": 0.004450818053607586,
+      "prediction_flip_rate": 0.02816423481506617,
+      "subject_cluster_bootstrap_95_ci": {
+        "unit": "HAR_test_subject",
+        "subjects": 9,
+        "repetitions": 10000,
+        "seed": 20261115,
+        "accuracy_change": {
+          "lower_95": -0.001712067306732845,
+          "upper_95": 0.011599801151991027,
+          "bootstrap_mean": 0.004398410826494315
+        },
+        "macro_f1_change": {
+          "lower_95": -0.0020276202230302687,
+          "upper_95": 0.012025684229519995,
+          "bootstrap_mean": 0.004432376841979028
+        }
+      }
+    },
+    "model_file": "evidence/results/apmc_gate_UCI_HAR.npz"
+  },
+  {
+    "dataset": "UCI_EEG_Eye_State",
+    "gate": {
+      "accuracy": 0.6951871657754011,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tp": 0,
+      "tn": 130,
+      "fp": 0,
+      "fn": 57,
+      "threshold": 1.01,
+      "prototype_enabled": false,
+      "oracle_prototype_rate": 0.3048128342245989,
+      "learned_prototype_rate": 0.0,
+      "learned_compression_ratio": 2.139141481039364,
+      "oracle_compression_ratio": 2.1405625696664634,
+      "direct_compression_ratio": 2.1405625696664634,
+      "byte_regret_percent": 0.06643266187371655
+    },
+    "downstream": {
+      "status": "not_evaluated",
+      "reason": "The chronological EEG window split has severe label shift and is retained for compression analysis only; no downstream performance claim is made."
+    },
+    "model_file": "evidence/results/apmc_gate_UCI_EEG_Eye_State.npz"
+  }
+]

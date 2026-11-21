@@ -1,0 +1,31 @@
+{
+  "python": "3.13.5",
+  "numpy": "2.3.2",
+  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "sprintz": {
+    "repository": "https://github.com/dblalock/sprintz",
+    "commit": "a056cdb67d049669875ab5487359aca99ae873ea",
+    "helper": "evidence/sprintz_cli_x86_64",
+    "helper_sha256": "306e865677adca846a49d74cc1c86b1fb047752d3c0ba7d1baa679f32461cc54",
+    "build": "x86_64 AVX2 BMI2; executed through macOS arch -x86_64"
+  },
+  "zstandard": {
+    "executable": "/opt/homebrew/bin/zstd",
+    "version": "*** Zstandard CLI (64-bit) v1.5.7, by Yann Collet ***",
+    "level": 19
+  },
+  "zfp": {
+    "executable": "/opt/homebrew/bin/zfp",
+    "version": "zfp version 1.0.1 (December 15, 2023)",
+    "mode": "fixed accuracy with embedded header",
+    "absolute_tolerances": [
+      0.05,
+      0.2
+    ]
+  },
+  "gorilla": {
+    "implementation": "codec_baselines.py float32 XOR value stream",
+    "timestamps": "omitted because sampling is uniform"
+  },
+  "eeg_policy": "compression analysis only; no downstream metric"
+}
