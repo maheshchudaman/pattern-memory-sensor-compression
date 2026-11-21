@@ -101,7 +101,7 @@ The datasets are not included. They must be obtained from the UCI Machine Learni
 
 ## Citation
 
-Citation metadata are provided in [CITATION.cff](CITATION.cff). Update the repository URL, release tag and DOI after publication and Zenodo archiving.
+Citation metadata are provided in [CITATION.cff](CITATION.cff). The public repository is available at [maheshchudaman/pattern-memory-sensor-compression](https://github.com/maheshchudaman/pattern-memory-sensor-compression). Add the archival DOI after a Zenodo release is created.
 
 ## Licensing
 
