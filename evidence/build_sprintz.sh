@@ -14,7 +14,7 @@ case "$system:$machine" in
     ;;
   Darwin:x86_64|Linux:x86_64)
     compiler=${CXX:-c++}
-    arch_flags="-mavx2 -mbmi2"
+    arch_flags="-mavx2 -mbmi2 -mlzcnt"
     ;;
   *)
     echo "unsupported Sprintz build target: $system $machine" >&2
