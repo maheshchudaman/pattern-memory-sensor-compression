@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from codec_baselines import (  # noqa: E402
     run_zstd,
 )
 from learned_gate_model import subject_cluster_bootstrap  # noqa: E402
+from prototype_residual_benchmark import load_wisdm_split  # noqa: E402
 
 
 class CodecRoundTripTests(unittest.TestCase):
@@ -59,6 +61,24 @@ class SubjectBootstrapTests(unittest.TestCase):
         second = subject_cluster_bootstrap(truth, original, reconstructed, subjects, repetitions=200, seed=7)
         self.assertEqual(first, second)
         self.assertEqual(first["subjects"], 3)
+
+
+class WisdmSplitTests(unittest.TestCase):
+    def test_subject_disjoint_balanced_loader(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for subject in range(1600, 1651):
+                path = root / f"data_{subject}_accel_phone.txt"
+                rows = [f"{subject},A,{index},{index}.0,1.0,2.0;\n" for index in range(128)]
+                path.write_text("".join(rows), encoding="utf-8")
+            train, test, y_train, y_test, subjects = load_wisdm_split(
+                root, window=128, windows_per_activity=1
+            )
+            self.assertEqual(train.shape, (41, 128, 3))
+            self.assertEqual(test.shape, (10, 128, 3))
+            self.assertEqual(len(y_train), 41)
+            self.assertEqual(len(y_test), 10)
+            self.assertEqual(set(subjects.tolist()), set(range(1641, 1651)))
 
 
 if __name__ == "__main__":

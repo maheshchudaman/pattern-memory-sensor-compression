@@ -4,13 +4,14 @@
 
 The reported evidence was generated with:
 
-- Python 3.13.5
-- NumPy 2.3.2
+- Python 3.12.14
+- NumPy 2.3.5
 - Matplotlib 3.10.3
 - Zstandard CLI 1.5.7 at level 19
 - ZFP CLI 1.0.1 in fixed-accuracy mode
 - Sprintz upstream commit `a056cdb67d049669875ab5487359aca99ae873ea`
 - random seed `20261115`
+- Apple M2 MacBook Air, 8 CPU cores and 8 GB memory for the reported runtime measurements
 
 The machine-readable environment record is stored in `evidence/results/codec_environment.json`.
 
@@ -28,7 +29,7 @@ This validates codec round trips, ZFP tolerance enforcement and deterministic cl
 ### Level 2 Full evidence regeneration
 
 ```bash
-./evidence/run_full_evidence.sh "/path/to/unpacked/har" "/path/to/EEG Eye State.arff"
+./evidence/run_full_evidence.sh "/path/to/unpacked/har" "/path/to/EEG Eye State.arff" "/path/to/unpacked/wisdm"
 ```
 
 This rebuilds the Sprintz helper, reruns the external codec baselines, trains both deployment gates and executes the tests.
@@ -44,7 +45,7 @@ python evidence/make_figures.py
 
 ## Determinism
 
-Randomized operations use seed `20261115`. External codec output is deterministic for a fixed executable, dataset and command configuration. Runtime measurements are not expected to be identical across machines.
+Randomized operations use seed `20261115`. External codec output is deterministic for a fixed executable, dataset and command configuration. Runtime fields are medians and interquartile ranges from five runs. They are not expected to be identical across machines.
 
 ## Complete-size accounting
 

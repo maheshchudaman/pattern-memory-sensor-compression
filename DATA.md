@@ -1,6 +1,6 @@
 # Dataset Setup
 
-The repository does not redistribute either dataset.
+The repository does not redistribute the datasets.
 
 ## UCI Human Activity Recognition Using Smartphones
 
@@ -30,6 +30,15 @@ The experiment uses the official subject-independent train and test partition, n
 Pass the ARFF path to `--eeg-arff` or as the second argument to `run_full_evidence.sh`.
 
 The experiment creates 64-sample windows with stride 32 and uses the first 60% chronologically for fitting. Because the resulting chronological segments have substantial label shift, EEG is evaluated only for compression.
+
+## UCI WISDM Smartphone and Smartwatch Activity and Biometrics
+
+- UCI record DOI: `10.24432/C5HK59`
+- Expected content: the extracted official WISDM archive containing the 51 `data_*_accel_phone.txt` files.
+
+Pass the extracted archive root to `--wisdm-root` or as the third argument to `run_full_evidence.sh`.
+
+The extension uses only the phone accelerometer, preserving its three axes. For each of the 51 subjects and 18 activities, the loader selects up to 12 deterministic, evenly spaced 128-sample windows. The lowest 41 subject identifiers form the training set and the highest 10 form the held-out test set. This produces a subject-disjoint compression and downstream evaluation without redistributing the raw measurements.
 
 ## Integrity checks
 

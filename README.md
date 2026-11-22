@@ -5,8 +5,8 @@ This repository contains the executable evidence for the study **When Pattern Me
 The repository reproduces three parts of the study:
 
 1. a learned record-level router with a deployment-level amortization gate;
-2. verified Gorilla-style XOR, Zstandard, Sprintz and ZFP comparisons; and
-3. downstream HAR preservation with subject-cluster bootstrap intervals and a synthetic recurrence boundary.
+2. verified Gorilla-style XOR, Zstandard, Sprintz and ZFP comparisons on three public datasets; and
+3. downstream preservation on subject-disjoint HAR and WISDM tests with subject-cluster bootstrap intervals and a synthetic recurrence boundary.
 
 ## Main findings reproduced by the code
 
@@ -16,8 +16,14 @@ The repository reproduces three parts of the study:
 | UCI HAR | Deployed pattern-memory gate | 3.438 | Prototype memory disabled because shared cost was not amortized |
 | EEG Eye State | Zstandard level 19 | 4.688 | Largest tested EEG ratio and lossless for the normalized float32 stream |
 | EEG Eye State | Deployed pattern-memory gate | 2.139 | Prototype memory disabled because shared cost was not amortized |
+| WISDM phone accelerometer | Deployed pattern-memory gate | 5.053 | Largest listed WISDM ratio, but at a different error constraint from ZFP |
+| WISDM phone accelerometer | ZFP fixed accuracy 0.20 | 3.642 | Lower observed error than the deployed gate |
 
-For HAR, the reconstructed-versus-original accuracy change is `+0.0044`, with a subject-cluster 95% interval of `[-0.0017, 0.0116]`. The interval includes zero and is not an equivalence test.
+For HAR, the reconstructed-versus-original accuracy change is `+0.0044`, with a subject-cluster 95% interval of `[-0.0017, 0.0116]`. For the auxiliary five-activity WISDM task, the change is `-0.0034`, with an interval of `[-0.0183, 0.0089]`. Both intervals include zero and are not equivalence tests.
+
+## Runtime evidence
+
+Runtime fields report five-run medians with interquartile ranges on an Apple M2 MacBook Air with 8 CPU cores and 8 GB memory. The baseline CSV contains separate encoding and decoding times. At target NRMSE 0.05, the proposed candidate-evaluation pipeline processed 25.81 MiB/s on HAR, 21.53 MiB/s on EEG and 12.49 MiB/s on WISDM. These Python research-code measurements describe the tested implementation; they do not establish production throughput leadership.
 
 ## Repository structure
 
@@ -38,7 +44,7 @@ REPRODUCIBILITY.md                  environment and verification details
 ## Requirements
 
 - Python 3.11 or newer
-- NumPy 2.3.2
+- NumPy 2.3.5
 - Matplotlib 3.10.3 for figure regeneration
 - Zstandard command-line tool 1.5.7
 - ZFP command-line tool 1.0.1
@@ -82,7 +88,8 @@ Download the datasets as described in [DATA.md](DATA.md), then run:
 ```bash
 ./evidence/run_full_evidence.sh \
   "/path/to/unpacked/har" \
-  "/path/to/EEG Eye State.arff"
+  "/path/to/EEG Eye State.arff" \
+  "/path/to/unpacked/wisdm"
 ```
 
 The command rebuilds the Sprintz helper, regenerates codec and gate results, and runs all verification tests. Outputs are written to `evidence/results/`.
@@ -92,7 +99,7 @@ The command rebuilds the Sprintz helper, regenerates codec and gate results, and
 - Sprintz is exact for the per-channel training-range uint16 representation, not for the original float32 values. Its quantization error and metadata are reported.
 - ZFP and the proposed codec use different formal error constraints. The repository therefore reports observed error for every operating point.
 - The EEG chronological split has substantial label shift. EEG is used only for compression analysis; no EEG downstream-classification claim is made.
-- The HAR uncertainty calculation contains nine independent test subjects. Its interval is descriptive and does not prove equivalence.
+- The HAR uncertainty calculation contains nine independent test subjects; the WISDM auxiliary task adds ten different held-out subjects. Both intervals are descriptive and do not prove equivalence.
 - Timing fields depend on the machine and implementation. The study does not claim throughput leadership.
 
 ## Data and privacy
@@ -101,7 +108,7 @@ The datasets are not included. They must be obtained from the UCI Machine Learni
 
 ## Citation
 
-Citation metadata are provided in [CITATION.cff](CITATION.cff). The public repository is available at [maheshchudaman/pattern-memory-sensor-compression](https://github.com/maheshchudaman/pattern-memory-sensor-compression). Add the archival DOI after a Zenodo release is created.
+Citation metadata are provided in [CITATION.cff](CITATION.cff). The public repository is available at [maheshchudaman/pattern-memory-sensor-compression](https://github.com/maheshchudaman/pattern-memory-sensor-compression), with the three-dataset evidence archived in [release v1.1.0](https://github.com/maheshchudaman/pattern-memory-sensor-compression/releases/tag/v1.1.0). Add the archival DOI after a Zenodo release is created.
 
 ## Licensing
 

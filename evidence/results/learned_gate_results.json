@@ -34,8 +34,10 @@
       "accuracy_change": 0.004411265693926025,
       "macro_f1_change": 0.004450818053607586,
       "prediction_flip_rate": 0.02816423481506617,
+      "evaluation_windows": 2947,
+      "activity_scope": "all_HAR_classes",
       "subject_cluster_bootstrap_95_ci": {
-        "unit": "HAR_test_subject",
+        "unit": "test_subject",
         "subjects": 9,
         "repetitions": 10000,
         "seed": 20261115,
@@ -78,5 +80,61 @@
       "reason": "The chronological EEG window split has severe label shift and is retained for compression analysis only; no downstream performance claim is made."
     },
     "model_file": "evidence/results/apmc_gate_UCI_EEG_Eye_State.npz"
+  },
+  {
+    "dataset": "UCI_WISDM_Phone_Accelerometer",
+    "gate": {
+      "accuracy": 0.865819209039548,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tp": 0,
+      "tn": 1839,
+      "fp": 0,
+      "fn": 285,
+      "threshold": 1.01,
+      "prototype_enabled": false,
+      "oracle_prototype_rate": 0.134180790960452,
+      "learned_prototype_rate": 0.0,
+      "learned_compression_ratio": 5.053022863922335,
+      "oracle_compression_ratio": 5.054651260074554,
+      "direct_compression_ratio": 5.054651260074554,
+      "byte_regret_percent": 0.03222617819216289
+    },
+    "downstream": {
+      "status": "evaluated_subject_independent_deterministic_split",
+      "original": {
+        "accuracy": 0.6530612244897959,
+        "macro_f1": 0.6531772399497494,
+        "changed_decisions": 204
+      },
+      "reconstructed": {
+        "accuracy": 0.6496598639455783,
+        "macro_f1": 0.650216572578483,
+        "changed_decisions": 206
+      },
+      "accuracy_change": -0.00340136054421758,
+      "macro_f1_change": -0.0029606673712664344,
+      "prediction_flip_rate": 0.03741496598639456,
+      "evaluation_windows": 588,
+      "activity_scope": "WISDM_activities_A_to_E",
+      "subject_cluster_bootstrap_95_ci": {
+        "unit": "test_subject",
+        "subjects": 10,
+        "repetitions": 10000,
+        "seed": 20261115,
+        "accuracy_change": {
+          "lower_95": -0.018333333333333313,
+          "upper_95": 0.00886524822695034,
+          "bootstrap_mean": -0.003352398104546157
+        },
+        "macro_f1_change": {
+          "lower_95": -0.02021958545857867,
+          "upper_95": 0.009885787566264013,
+          "bootstrap_mean": -0.0032376399950013947
+        }
+      }
+    },
+    "model_file": "evidence/results/apmc_gate_UCI_WISDM_Phone_Accelerometer.npz"
   }
 ]

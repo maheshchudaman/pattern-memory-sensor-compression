@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import struct
 import time
 import zlib
@@ -61,6 +62,64 @@ def load_eeg(arff: Path, window: int = 64, stride: int = 32):
     )
     cut = int(0.60 * len(windows))
     return windows[:cut], windows[cut:]
+
+
+def load_wisdm_split(root: Path, window: int = 128, windows_per_activity: int = 12):
+    """Load a balanced, subject-disjoint WISDM phone-accelerometer subset."""
+    files = sorted(root.rglob("data_*_accel_phone.txt"))
+    if len(files) < 51:
+        raise FileNotFoundError(
+            f"expected 51 WISDM phone-accelerometer files below {root}, found {len(files)}"
+        )
+    subject_ids = sorted({int(re.search(r"data_(\d+)_", path.name).group(1)) for path in files})
+    if len(subject_ids) != 51:
+        raise ValueError(f"expected 51 WISDM subjects, found {len(subject_ids)}")
+    train_subjects = set(subject_ids[:41])
+    activity_codes = [code for code in "ABCDEFGHIJKLMNOPQRS" if code != "N"]
+    activity_index = {code: index for index, code in enumerate(activity_codes)}
+
+    train_windows, test_windows = [], []
+    train_labels, test_labels, test_subject_ids = [], [], []
+    for path in files:
+        match = re.search(r"data_(\d+)_", path.name)
+        if not match:
+            continue
+        subject = int(match.group(1))
+        by_activity = {code: [] for code in activity_codes}
+        with path.open("r", encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                parts = line.strip().rstrip(";").split(",")
+                if len(parts) != 6 or parts[1] not in by_activity:
+                    continue
+                try:
+                    by_activity[parts[1]].append([float(parts[3]), float(parts[4]), float(parts[5])])
+                except ValueError:
+                    continue
+        for activity in activity_codes:
+            values = np.asarray(by_activity[activity], dtype=np.float32)
+            if len(values) < window:
+                continue
+            count = min(windows_per_activity, len(values) // window)
+            starts = np.linspace(0, len(values) - window, count, dtype=np.int64)
+            for start in np.unique(starts):
+                sample = values[start:start + window]
+                if subject in train_subjects:
+                    train_windows.append(sample)
+                    train_labels.append(activity_index[activity])
+                else:
+                    test_windows.append(sample)
+                    test_labels.append(activity_index[activity])
+                    test_subject_ids.append(subject)
+    return (
+        np.stack(train_windows), np.stack(test_windows),
+        np.asarray(train_labels, dtype=np.int64), np.asarray(test_labels, dtype=np.int64),
+        np.asarray(test_subject_ids, dtype=np.int64),
+    )
+
+
+def load_wisdm(root: Path, window: int = 128, windows_per_activity: int = 12):
+    train, test, *_ = load_wisdm_split(root, window, windows_per_activity)
+    return train, test
 
 
 def robust_standardize(train: np.ndarray, test: np.ndarray):
@@ -293,28 +352,54 @@ def evaluate(dataset: str, train: np.ndarray, test: np.ndarray, k: int, epsilon:
     ]
 
 
+def repeated_evaluate(dataset: str, train: np.ndarray, test: np.ndarray, k: int,
+                      epsilon: float, repetitions: int):
+    runs = [evaluate(dataset, train, test, k, epsilon) for _ in range(repetitions)]
+    reference = runs[0]
+    adaptive_index = next(
+        index for index, row in enumerate(reference)
+        if row["method"] == "adaptive_prototype_residual"
+    )
+    throughput = np.asarray(
+        [run[adaptive_index]["benchmark_mib_per_s"] for run in runs], dtype=float
+    )
+    adaptive = reference[adaptive_index]
+    adaptive["benchmark_mib_per_s"] = float(np.median(throughput))
+    adaptive["benchmark_mib_per_s_q1"] = float(np.quantile(throughput, 0.25))
+    adaptive["benchmark_mib_per_s_q3"] = float(np.quantile(throughput, 0.75))
+    adaptive["runtime_repetitions"] = repetitions
+    return reference
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--har-root", type=Path, required=True)
     parser.add_argument("--eeg-arff", type=Path, required=True)
+    parser.add_argument("--wisdm-root", type=Path)
     parser.add_argument("--output-dir", type=Path, default=Path("evidence/results"))
     parser.add_argument("--prototypes", type=int, default=16)
     parser.add_argument("--epsilons", type=float, nargs="+", default=[0.02, 0.05, 0.10])
+    parser.add_argument("--runtime-repetitions", type=int, default=5)
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     har = load_har(args.har_root)
     eeg = load_eeg(args.eeg_arff)
+    datasets = [("UCI_HAR", har), ("UCI_EEG_Eye_State", eeg)]
+    if args.wisdm_root:
+        datasets.append(("UCI_WISDM_Phone_Accelerometer", load_wisdm(args.wisdm_root)))
     all_rows = []
-    for name, (train, test) in [("UCI_HAR", har), ("UCI_EEG_Eye_State", eeg)]:
+    for name, (train, test) in datasets:
         for epsilon in args.epsilons:
             print(f"Evaluating {name} at epsilon={epsilon:.3f}", flush=True)
-            all_rows.extend(evaluate(name, train, test, args.prototypes, epsilon))
+            all_rows.extend(repeated_evaluate(
+                name, train, test, args.prototypes, epsilon, args.runtime_repetitions
+            ))
 
     fieldnames = sorted({key for row in all_rows for key in row})
     csv_path = args.output_dir / "benchmark_results.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(all_rows)
     json_path = args.output_dir / "benchmark_results.json"

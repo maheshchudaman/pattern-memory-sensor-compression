@@ -25,7 +25,7 @@ from pathlib import Path
 
 import numpy as np
 
-from prototype_residual_benchmark import load_eeg, load_har, robust_standardize
+from prototype_residual_benchmark import load_eeg, load_har, load_wisdm, robust_standardize
 
 
 NORMALIZATION_FLOATS_PER_CHANNEL = 4  # mean, std, clip low, clip high
@@ -337,10 +337,28 @@ def benchmark_dataset(name: str, train: np.ndarray, test: np.ndarray, args) -> l
     return rows
 
 
+def repeated_benchmark_dataset(name: str, train: np.ndarray, test: np.ndarray, args) -> list[dict]:
+    runs = [benchmark_dataset(name, train, test, args) for _ in range(args.runtime_repetitions)]
+    reference = runs[0]
+    for method_index, row in enumerate(reference):
+        encode = np.asarray([run[method_index]["encode_seconds"] for run in runs], dtype=float)
+        decode = np.asarray([run[method_index]["decode_seconds"] for run in runs], dtype=float)
+        row["encode_seconds"] = float(np.median(encode))
+        row["encode_seconds_q1"] = float(np.quantile(encode, 0.25))
+        row["encode_seconds_q3"] = float(np.quantile(encode, 0.75))
+        row["decode_seconds"] = float(np.median(decode))
+        row["decode_seconds_q1"] = float(np.quantile(decode, 0.25))
+        row["decode_seconds_q3"] = float(np.quantile(decode, 0.75))
+        row["runtime_repetitions"] = args.runtime_repetitions
+    return reference
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--har-root", type=Path, required=True)
     parser.add_argument("--eeg-arff", type=Path, required=True)
+    parser.add_argument("--wisdm-root", type=Path)
+    parser.add_argument("--runtime-repetitions", type=int, default=5)
     parser.add_argument("--output-dir", type=Path, default=Path("evidence/results"))
     parser.add_argument(
         "--tolerances", type=float, nargs="+", default=[0.05, 0.20],
@@ -356,17 +374,19 @@ def main():
         ("UCI_HAR", *load_har(args.har_root)),
         ("UCI_EEG_Eye_State", *load_eeg(args.eeg_arff)),
     ]
+    if args.wisdm_root:
+        datasets.append(("UCI_WISDM_Phone_Accelerometer", *load_wisdm(args.wisdm_root)))
     rows = []
     for name, train, test in datasets:
         print(f"Running verified codec baselines for {name}", flush=True)
-        rows.extend(benchmark_dataset(name, train, test, args))
+        rows.extend(repeated_benchmark_dataset(name, train, test, args))
 
     json_path = args.output_dir / "codec_baselines.json"
     json_path.write_text(json.dumps(rows, indent=2), encoding="utf-8")
     csv_path = args.output_dir / "codec_baselines.csv"
     fields = sorted({key for row in rows for key in row})
     with csv_path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
@@ -380,21 +400,27 @@ def main():
         return lines[0]
 
     sprintz_root = repository_root / "third_party" / "sprintz"
-    git_commit = subprocess.run(
-        ["git", "-C", str(sprintz_root), "rev-parse", "HEAD"],
-        capture_output=True, text=True, check=False,
-    )
-    if git_commit.returncode == 0:
-        sprintz_commit = git_commit.stdout.strip()
-    else:
-        sprintz_commit = (repository_root / "third_party" / "SPRINTZ_COMMIT").read_text(
-            encoding="utf-8"
-        ).strip()
+    sprintz_commit = (repository_root / "third_party" / "SPRINTZ_COMMIT").read_text(
+        encoding="utf-8"
+    ).strip()
     sprintz_sha256 = hashlib.sha256(args.sprintz.read_bytes()).hexdigest()
+    hardware = {"machine": platform.machine(), "processor": platform.processor()}
+    if platform.system() == "Darwin":
+        profile = subprocess.run(
+            ["system_profiler", "SPHardwareDataType"], capture_output=True, text=True, check=False
+        ).stdout
+        for line in profile.splitlines():
+            stripped = line.strip()
+            for label, key in [("Model Name:", "model"), ("Chip:", "chip"),
+                               ("Total Number of Cores:", "cores"), ("Memory:", "memory")]:
+                if stripped.startswith(label):
+                    hardware[key] = stripped.split(":", 1)[1].strip()
     manifest = {
         "python": sys.version.split()[0],
         "numpy": np.__version__,
         "platform": platform.platform(),
+        "hardware": hardware,
+        "runtime_repetitions": args.runtime_repetitions,
         "sprintz": {
             "repository": "https://github.com/dblalock/sprintz",
             "commit": sprintz_commit,

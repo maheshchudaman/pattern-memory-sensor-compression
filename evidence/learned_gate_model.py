@@ -20,6 +20,7 @@ from prototype_residual_benchmark import (
     SEED,
     kmeans_prototypes,
     load_har,
+    load_wisdm_split,
     nearest_prototype,
     robust_standardize,
     transform_record,
@@ -74,6 +75,15 @@ def load_eeg_with_labels(arff: Path, window=64, stride=32):
     window_labels = np.asarray(window_labels)
     cut = int(0.60 * len(windows))
     return windows[:cut], windows[cut:], window_labels[:cut], window_labels[cut:], None
+
+
+def load_wisdm_with_labels(root: Path):
+    train, test, y_train, y_test, subjects = load_wisdm_split(root)
+    # The auxiliary downstream check uses the five locomotion/posture
+    # activities A-E. Compression evaluation continues to use all 18 classes.
+    y_train = np.where(y_train < 5, y_train, -1)
+    y_test = np.where(y_test < 5, y_test, -1)
+    return train, test, y_train, y_test, subjects
 
 
 def safe_corr(x, y):
@@ -287,7 +297,7 @@ def subject_cluster_bootstrap(y_true, original_prediction, reconstructed_predict
         }
 
     return {
-        "unit": "HAR_test_subject",
+        "unit": "test_subject",
         "subjects": int(len(unique_subjects)),
         "repetitions": int(repetitions),
         "seed": int(seed),
@@ -349,23 +359,34 @@ def run_dataset(name, train, test, y_train, y_test, test_subjects,
 
     reconstructed_z = learned_rec.reshape(test_z.shape)
     if test_subjects is not None:
-        task_train_features = downstream_features(train_z)
-        task_test_original = downstream_features(test_z)
-        task_test_reconstructed = downstream_features(reconstructed_z)
-        classifier = fit_ridge_classifier(task_train_features, y_train, ridge=2.0)
+        train_mask = y_train >= 0
+        test_mask = y_test >= 0
+        task_train_features = downstream_features(train_z[train_mask])
+        task_test_original = downstream_features(test_z[test_mask])
+        task_test_reconstructed = downstream_features(reconstructed_z[test_mask])
+        task_y_train = y_train[train_mask]
+        task_y_test = y_test[test_mask]
+        task_subjects = test_subjects[test_mask]
+        classifier = fit_ridge_classifier(task_train_features, task_y_train, ridge=2.0)
         original_prediction = ridge_predict(task_test_original, classifier)
         reconstructed_prediction = ridge_predict(task_test_reconstructed, classifier)
-        original_metrics = task_metrics(y_test, original_prediction)
-        reconstructed_metrics = task_metrics(y_test, reconstructed_prediction)
+        original_metrics = task_metrics(task_y_test, original_prediction)
+        reconstructed_metrics = task_metrics(task_y_test, reconstructed_prediction)
         downstream = {
-            "status": "evaluated_subject_independent_official_split",
+            "status": (
+                "evaluated_subject_independent_official_split"
+                if name == "UCI_HAR"
+                else "evaluated_subject_independent_deterministic_split"
+            ),
             "original": original_metrics,
             "reconstructed": reconstructed_metrics,
             "accuracy_change": reconstructed_metrics["accuracy"] - original_metrics["accuracy"],
             "macro_f1_change": reconstructed_metrics["macro_f1"] - original_metrics["macro_f1"],
             "prediction_flip_rate": float(np.mean(original_prediction != reconstructed_prediction)),
+            "evaluation_windows": int(test_mask.sum()),
+            "activity_scope": "all_HAR_classes" if name == "UCI_HAR" else "WISDM_activities_A_to_E",
             "subject_cluster_bootstrap_95_ci": subject_cluster_bootstrap(
-                y_test, original_prediction, reconstructed_prediction, test_subjects
+                task_y_test, original_prediction, reconstructed_prediction, task_subjects
             ),
         }
     else:
@@ -404,6 +425,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--har-root", type=Path, required=True)
     parser.add_argument("--eeg-arff", type=Path, required=True)
+    parser.add_argument("--wisdm-root", type=Path)
     parser.add_argument("--output-dir", type=Path, default=Path("evidence/results"))
     parser.add_argument("--epsilon", type=float, default=0.05)
     parser.add_argument("--prototypes", type=int, default=16)
@@ -414,6 +436,8 @@ def main():
         ("UCI_HAR", load_har_with_labels(args.har_root)),
         ("UCI_EEG_Eye_State", load_eeg_with_labels(args.eeg_arff)),
     ]
+    if args.wisdm_root:
+        datasets.append(("UCI_WISDM_Phone_Accelerometer", load_wisdm_with_labels(args.wisdm_root)))
     results = []
     for name, values in datasets:
         print(f"Training learned coding gate for {name}", flush=True)
@@ -432,7 +456,7 @@ def main():
             "macro_f1_change_ci95_low", "macro_f1_change_ci95_high",
             "prediction_flip_rate", "downstream_note", "model_file",
         ]
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for result in results:
             gate = result["gate"]
@@ -466,7 +490,7 @@ def main():
                 "downstream_note": downstream.get("reason", ""),
                 "model_file": result["model_file"],
             })
-    print(f"Wrote {json_path}, {csv_path}, and two model files")
+    print(f"Wrote {json_path}, {csv_path}, and {len(results)} model files")
 
 
 if __name__ == "__main__":

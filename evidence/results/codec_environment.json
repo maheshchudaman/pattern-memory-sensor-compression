@@ -1,13 +1,22 @@
 {
-  "python": "3.13.5",
-  "numpy": "2.3.2",
-  "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "hardware": {
+    "machine": "arm64",
+    "processor": "arm",
+    "model": "MacBook Air",
+    "chip": "Apple M2",
+    "cores": "8 (4 Performance and 4 Efficiency)",
+    "memory": "8 GB"
+  },
+  "runtime_repetitions": 5,
   "sprintz": {
     "repository": "https://github.com/dblalock/sprintz",
     "commit": "a056cdb67d049669875ab5487359aca99ae873ea",
-    "helper": "evidence/sprintz_cli_x86_64",
-    "helper_sha256": "306e865677adca846a49d74cc1c86b1fb047752d3c0ba7d1baa679f32461cc54",
-    "build": "x86_64 AVX2 BMI2; executed through macOS arch -x86_64"
+    "helper": "evidence/sprintz_cli",
+    "helper_sha256": "800b91d03d636bec964cc67db61db21be05549d9b7c3377cb6efa09271dec054",
+    "build": "x86_64 AVX2 BMI2; Apple silicon executes through macOS arch -x86_64"
   },
   "zstandard": {
     "executable": "/opt/homebrew/bin/zstd",

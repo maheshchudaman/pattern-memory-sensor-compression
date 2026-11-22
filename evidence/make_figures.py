@@ -25,7 +25,7 @@ def real_dataset_figure():
         ("direct_sparse_fft", "Direct sparse FFT"),
         ("adaptive_prototype_residual", "Adaptive prototype residual"),
     ]
-    datasets = ["UCI_HAR", "UCI_EEG_Eye_State"]
+    datasets = ["UCI_HAR", "UCI_EEG_Eye_State", "UCI_WISDM_Phone_Accelerometer"]
     values = []
     for method, _ in methods:
         values.append([
@@ -40,7 +40,7 @@ def real_dataset_figure():
     for i, ((_, label), series) in enumerate(zip(methods, values)):
         ax.bar(x + (i - 1.5) * width, series, width, label=label)
     ax.set_ylabel("Compression ratio (raw bytes / encoded bytes)")
-    ax.set_xticks(x, ["UCI HAR", "UCI EEG Eye State"])
+    ax.set_xticks(x, ["UCI HAR", "UCI EEG Eye State", "UCI WISDM phone accel."])
     ax.set_title("Measured storage ratios at target NRMSE 0.05")
     ax.grid(axis="y", alpha=0.25)
     ax.legend(frameon=False, fontsize=8, ncol=2)
@@ -78,7 +78,7 @@ def break_even_figure():
 def codec_baseline_figure():
     codec_rows = read_csv(OUT / "codec_baselines.csv")
     learned_rows = read_csv(OUT / "learned_gate_results.csv")
-    datasets = ["UCI_HAR", "UCI_EEG_Eye_State"]
+    datasets = ["UCI_HAR", "UCI_EEG_Eye_State", "UCI_WISDM_Phone_Accelerometer"]
     methods = [
         ("gorilla_xor_float32", "Gorilla XOR", "lossless"),
         ("zstandard_19_float32", "Zstandard", "lossless"),
@@ -112,7 +112,7 @@ def codec_baseline_figure():
         ax.bar_label(bars, labels=[f"{value:.2f}" for value in series],
                      padding=2, fontsize=7, rotation=90)
     ax.set_ylabel("Compression ratio (raw bytes / total encoded bytes)")
-    ax.set_xticks(x, ["UCI HAR", "UCI EEG Eye State"])
+    ax.set_xticks(x, ["UCI HAR", "UCI EEG Eye State", "UCI WISDM phone accel."])
     ax.set_ylim(0, max(values.ravel()) * 1.22)
     ax.set_title("Verified codec baselines and learned coding gate")
     ax.grid(axis="y", alpha=0.25)
